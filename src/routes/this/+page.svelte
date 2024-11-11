@@ -1,11 +1,9 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 
 	const { data } = $props()
 
-    let hashClassesList = $state(decodeURIComponent($page.url.searchParams.get('class')??'').replace('#', '').trim().split(' '))
+    let hashClassesList = $state(decodeURIComponent($page.url.searchParams.get('class')??'').split(' '))
     
     type FormStatus = '' | 'wait' | 'sent' | 'error'
 
@@ -209,7 +207,32 @@
 {/if}
 	
 <svelte:head>
-	{@html data.styles}
+	<script src="https://cdn.tailwindcss.com/?plugins=forms"></script>
+	<script>
+		tailwind.config = {
+			plugins: [
+				tailwind.plugin(function ({ addVariant, addUtilities }) {
+					addVariant('placeholders', '& *::placeholder');
+					addVariant('buttons', '& button');
+					addVariant('labels', '& label');
+					addVariant('inputs', '& :is(input, select, textarea)');
+
+					addVariant('wait', '&.wait');
+					addVariant('group-wait', ':merge(.group).wait &');
+					addVariant('peer-wait', ':merge(.peer).wait ~ &');
+
+					addVariant('sent', '&.sent');
+					addVariant('group-sent', ':merge(.group).sent &');
+					addVariant('peer-sent', ':merge(.peer).sent ~ &');
+
+					addVariant('error', '&.error');
+					addVariant('group-error', ':merge(.group).error &');
+					addVariant('peer-error', ':merge(.peer).error ~ &');
+				})
+			]
+		}
+	</script>
+	<!-- {@html data.styles} -->
 	{#if publicGoogleRecaptchaToken}
 		<script
 			src="https://www.google.com/recaptcha/api.js?render={publicGoogleRecaptchaToken}"
