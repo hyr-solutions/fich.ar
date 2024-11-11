@@ -1,0 +1,15 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+
+@layer base {
+    :root {
+        font-family: Inter, sans-serif;
+        font-feature-settings: 'liga' 1, 'calt' 1, 'dlig' 1, 'case' 1,  'ss02' 1, 'ss07' 1; /* fix for Chrome */
+        @apply select-none
+    }
+    @supports (font-variation-settings: normal) {
+        :root { font-family: InterVariable, sans-serif; }
+    }
+}
