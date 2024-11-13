@@ -1,10 +1,115 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
-	const { data } = $props();
+	import initUnocssRuntime from '@unocss/runtime';
+	import presetUno from '@unocss/preset-uno';
+	import { presetForms } from '@julr/unocss-preset-forms';
+	import '@unocss/reset/tailwind.css';
+
+	onMount(() => {
+		initUnocssRuntime({
+			defaults: {
+				presets: [presetUno, presetForms()],
+				variants: [
+					(matcher) => {
+						if (!matcher.startsWith('placeholders:')) return matcher;
+						return {
+							matcher: matcher.slice(13),
+							selector: (s) => `${s} *::placeholder`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('buttons:')) return matcher;
+						return {
+							matcher: matcher.slice(8),
+							selector: (s) => `${s} button`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('labels:')) return matcher;
+						return {
+							matcher: matcher.slice(7),
+							selector: (s) => `${s} label`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('inputs:')) return matcher;
+						return {
+							matcher: matcher.slice(7),
+							selector: (s) => `${s} :is(input, select, textarea)`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('wait:')) return matcher;
+						return {
+							matcher: matcher.slice(5),
+							selector: (s) => `${s}.wait`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('group-wait:')) return matcher;
+						return {
+							matcher: matcher.slice(11),
+							selector: (s) => `:merge(.group).wait ${s}`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('peer-wait:')) return matcher;
+						return {
+							matcher: matcher.slice(10),
+							selector: (s) => `:merge(.peer).wait ~ ${s}`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('sent:')) return matcher;
+						return {
+							matcher: matcher.slice(5),
+							selector: (s) => `${s}.sent`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('group-sent:')) return matcher;
+						return {
+							matcher: matcher.slice(11),
+							selector: (s) => `:merge(.group).sent ${s}`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('peer-sent:')) return matcher;
+						return {
+							matcher: matcher.slice(10),
+							selector: (s) => `:merge(.peer).sent ~ ${s}`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('error:')) return matcher;
+						return {
+							matcher: matcher.slice(6),
+							selector: (s) => `${s}.error`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('group-error:')) return matcher;
+						return {
+							matcher: matcher.slice(12),
+							selector: (s) => `:merge(.group).error ${s}`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('peer-error:')) return matcher;
+						return {
+							matcher: matcher.slice(11),
+							selector: (s) => `:merge(.peer).error ~ ${s}`
+						};
+					}
+				]
+			}
+		});
+	});
 
 	let hashClassesList = $state(
-		decodeURIComponent($page.url.hash.replace('#','') ?? '').split(' ')
+		decodeURIComponent($page.url.hash.replace('#', '') ?? '').split(' ')
 	);
 
 	type FormStatus = '' | 'wait' | 'sent' | 'error';
@@ -97,16 +202,16 @@
 				);
 				if (existingField) {
 					existingField.values?.push({
-						value: field.value ?? '',
-						placeholder: field.placeholder ?? ''
+						value: field?.options?.name ?? field.value ?? '',
+						placeholder: field.value ?? ''
 					});
 				} else {
 					groupedFields.push({
 						...field,
 						values: [
 							{
-								value: field.value ?? '',
-								placeholder: field.placeholder ?? ''
+								value: field?.options?.name ?? field.value ?? '',
+								placeholder: field.value ?? ''
 							}
 						]
 					});
@@ -147,7 +252,7 @@
 </script>
 
 {#if status === 'wait' || status === ''}
-	<form class="{classes} flex flex-col" onsubmit={submitHandler}>
+	<form class="{classes} flex flex-col" onsubmit={submitHandler} {...{ 'un-cloak': '' }}>
 		{#each parseSchemaString(formSchemaString) as { type, name, placeholder, value, options, values }}
 			{#if ['range', 'email', 'number', 'tel', 'text', 'url', 'file', 'date', 'time', 'datetime-local', 'month', 'week', 'hidden'].includes(type)}
 				<input
@@ -186,9 +291,7 @@
 			{/if}
 			{#if ['select'].includes(type) && values}
 				<select required={options?.required ?? true} {...options}>
-					{#if options?.required ?? true}
-						<option value="" disabled selected hidden>{placeholder}</option>
-					{/if}
+					<option value="" disabled selected hidden>{placeholder}</option>
 					{#each values as { value, placeholder }}
 						<option {value}>{placeholder}</option>
 					{/each}
@@ -253,33 +356,11 @@
 {/if}
 
 <svelte:head>
-	<!-- {@html data.styleTag} -->
-	<script src="https://cdn.tailwindcss.com/?plugins=forms"></script>
-	<script>
-		tailwind.config = {
-			plugins: [
-				tailwind.plugin(function ({ addVariant, addUtilities }) {
-					addVariant('placeholders', '& *::placeholder');
-					addVariant('buttons', '& button');
-					addVariant('labels', '& label');
-					addVariant('inputs', '& :is(input, select, textarea)');
-
-					addVariant('wait', '&.wait');
-					addVariant('group-wait', ':merge(.group).wait &');
-					addVariant('peer-wait', ':merge(.peer).wait ~ &');
-
-					addVariant('sent', '&.sent');
-					addVariant('group-sent', ':merge(.group).sent &');
-					addVariant('peer-sent', ':merge(.peer).sent ~ &');
-
-					addVariant('error', '&.error');
-					addVariant('group-error', ':merge(.group).error &');
-					addVariant('peer-error', ':merge(.peer).error ~ &');
-				})
-			]
+	<style>
+		[un-cloak] {
+			display: none;
 		}
-	</script>
-
+	</style>
 	{#if publicGoogleRecaptchaToken}
 		<script
 			src="https://www.google.com/recaptcha/api.js?render={publicGoogleRecaptchaToken}"
