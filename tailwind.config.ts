@@ -4,7 +4,7 @@ import plugin from 'tailwindcss/plugin';
 import { addDynamicIconSelectors } from '@iconify/tailwind';
 
 export default {
-	content: ['./src/**/*.{html,js,svelte,ts}'],
+	content: ['./src/**/*.{html,js,svelte,ts}', './node_modules/svhighlight/**/*.svelte'],
 	theme: {
 		extend: {}
 	},

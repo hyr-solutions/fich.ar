@@ -176,11 +176,14 @@
 		}
 	) {
 		e.preventDefault();
+		
 		if (areInputsDisabled) {
 			//Do nothing...
 		} else {
-			console.log('submitting')
 			formStatus = 'wait'
+
+			await new Promise((res)=>setTimeout(res, 1000))
+
 			try {
 				let body = new FormData(e.currentTarget)
 				let res = await fetch('', {
