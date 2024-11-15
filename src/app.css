@@ -13,3 +13,10 @@
         :root { font-family: InterVariable, sans-serif; }
     }
 }
+
+@layer utilities {
+    .no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+}

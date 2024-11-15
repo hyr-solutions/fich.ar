@@ -17,6 +17,9 @@ importers:
       pocketbase:
         specifier: ^0.21.5
         version: 0.21.5
+      zod:
+        specifier: ^3.23.8
+        version: 3.23.8
     devDependencies:
       '@iconify-json/lucide':
         specifier: ^1.2.11

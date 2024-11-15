@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 
 	import initUnocssRuntime from '@unocss/runtime';
 	import presetUno from '@unocss/preset-uno';
 	import { presetForms } from '@julr/unocss-preset-forms';
 	import '@unocss/reset/tailwind.css';
 
-	onMount(() => {
+	import { onMount } from 'svelte';
+	import { parseSchemaString } from './form';
+
+	// let { data } = $props()
+
+	onMount(()=>{
 		initUnocssRuntime({
 			defaults: {
-				presets: [presetUno, presetForms()],
+				presets: [presetForms(), presetUno],
 				variants: [
 					(matcher) => {
 						if (!matcher.startsWith('placeholders:')) return matcher;
@@ -37,7 +41,28 @@
 						if (!matcher.startsWith('inputs:')) return matcher;
 						return {
 							matcher: matcher.slice(7),
-							selector: (s) => `${s} :is(input, select, textarea)`
+							selector: (s) => `${s} :is(input:not([type="file"]), [type="radio"], select, textarea), ${s} input::file-selector-button`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('radios:')) return matcher;
+						return {
+							matcher: matcher.slice(7),
+							selector: (s) => `${s} input[type="radio"]`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('fileselectors:')) return matcher;
+						return {
+							matcher: matcher.slice(14),
+							selector: (s) => `${s} input::file-selector-button`
+						};
+					},
+					(matcher) => {
+						if (!matcher.startsWith('files:')) return matcher;
+						return {
+							matcher: matcher.slice(6),
+							selector: (s) => `${s} input[type="file"]`
 						};
 					},
 					(matcher) => {
@@ -106,7 +131,7 @@
 				]
 			}
 		});
-	});
+	})
 
 	let hashClassesList = $state(
 		decodeURIComponent($page.url.hash.replace('#', '') ?? '').split(' ')
@@ -114,112 +139,16 @@
 
 	type FormStatus = '' | 'wait' | 'sent' | 'error';
 
-	let status = $state(
+	let formStatus = $state(
 		(hashClassesList.findLast((i) => ['wait', 'sent', 'error'].includes(i)) as FormStatus) ?? ''
 	);
-	let classes = $derived(hashClassesList.join(' ') + ' ' + status);
+	let classes = $derived(hashClassesList.join(' ') + ' ' + formStatus);
 
-	let formSchemaString = $derived($page.url.searchParams.get('form') ?? '');
-	let sentSchemaString = $derived($page.url.searchParams.get('sent') ?? '');
-	let errorSchemaString = $derived($page.url.searchParams.get('error') ?? '');
+	let formSchemaString = $derived($page.url.searchParams?.get('form') ?? '');
+	let sentSchemaString = $derived($page.url.searchParams?.get('sent') ?? '');
+	let errorSchemaString = $derived($page.url.searchParams?.get('error') ?? '');
 	let publicGoogleRecaptchaToken = '';
-
-	type ParsedField = {
-		type: string;
-		placeholder: string;
-		name: string;
-		options: Record<string, any> | null;
-		value: string | null;
-		values?: { value: string; placeholder: string }[];
-	};
-
-	function parseSchemaString(input: string): ParsedField[] {
-		const fields: ParsedField[] = [];
-
-		const rows = input.split(/\s*,\s*/); // Split rows by commas with surrounding whitespace
-
-		for (const row of rows) {
-			// Match quoted strings as single tokens or unquoted words separately
-			const tokens = row.match(/"[^"]+"|'[^']+'|\S+/g);
-			if (!tokens || tokens.length < 2) continue; // Ensure at least `type` and `name|placeholder`
-
-			// Extract `type`
-			const type = tokens[0].trim();
-
-			// Extract `name|placeholder`, removing any surrounding quotes
-			const namePlaceholder = tokens[1].replace(/^['"]|['"]$/g, '').trim();
-
-			// Extract optional `value`
-			const value =
-				tokens[2] && !tokens[2].includes('=') ? tokens[2].replace(/^['"]|['"]$/g, '').trim() : null;
-
-			// Extract options if any
-			const options: Record<string, any> = {};
-			const optionTokens = tokens.slice(value ? 3 : 2); // Start after `value` or directly after `name|placeholder`
-
-			// Join options into a single string, then split by semicolon, preserving quoted values
-			const optionString = optionTokens.join(' ');
-			const optionPairs = optionString.match(/(\w+)=('[^']*'|"[^"]*"|[^;\s]+)/g) || [];
-
-			for (const pair of optionPairs) {
-				const [key, rawVal] = pair.split('=').map((str) => str.trim());
-
-				if (key && rawVal !== undefined) {
-					// Remove surrounding quotes, if any
-					let parsedVal: any = rawVal.replace(/^['"]|['"]$/g, '');
-
-					// Parse the value intelligently
-					if (parsedVal === 'true') parsedVal = true;
-					else if (parsedVal === 'false') parsedVal = false;
-					else if (!isNaN(Number(parsedVal))) parsedVal = Number(parsedVal);
-
-					options[key] = parsedVal;
-				}
-			}
-
-			// Determine placeholder and name, with options taking precedence
-			const placeholder = options.placeholder ? String(options.placeholder) : namePlaceholder;
-			const name = options.name ? String(options.name) : placeholder;
-
-			fields.push({
-				type,
-				placeholder,
-				name,
-				options: Object.keys(options).length ? options : null,
-				value
-			});
-		}
-
-		return groupFields(fields);
-	}
-
-	function groupFields(fields: ParsedField[]) {
-		let groupedFields: ParsedField[] = [];
-		for (let field of fields) {
-			if (field.type === 'select') {
-				let existingField = groupedFields.find(
-					(i) => i.type === field.type && i.name === field.name
-				);
-				if (existingField) {
-					existingField.values?.push({
-						value: field?.options?.name ?? field.value ?? '',
-						placeholder: field.value ?? ''
-					});
-				} else {
-					groupedFields.push({
-						...field,
-						values: [
-							{
-								value: field?.options?.name ?? field.value ?? '',
-								placeholder: field.value ?? ''
-							}
-						]
-					});
-				}
-			} else groupedFields.push(field);
-		}
-		return groupedFields;
-	}
+	let areInputsDisabled = $derived(formStatus === 'wait')
 
 	function resolvePath(path: string) {
 		// Check if path starts with "http://" or "https://"
@@ -232,8 +161,8 @@
 
 		// Check if `document.referrer` is available
 
-		if (data.referrer ?? document.referrer) {
-			const url = new URL(path, data.referrer ?? document.referrer); // `URL` constructor will handle the relative path properly
+		if (document.referrer) {
+			const url = new URL(path, document.referrer); // `URL` constructor will handle the relative path properly
 			return url.href;
 		} else {
 			console.warn('No referrer available; cannot resolve relative path to absolute.');
@@ -247,12 +176,32 @@
 		}
 	) {
 		e.preventDefault();
-		alert('sent!');
+		if (areInputsDisabled) {
+			//Do nothing...
+		} else {
+			console.log('submitting')
+			formStatus = 'wait'
+			try {
+				let body = new FormData(e.currentTarget)
+				let res = await fetch('', {
+					method: 'POST',
+					body
+				})
+				if (res.ok) {
+					formStatus = 'sent'
+				} else {
+					throw new Error()
+				}
+			} catch(e) {
+				formStatus = 'error'
+			}
+		}
+		
 	}
 </script>
 
-{#if status === 'wait' || status === ''}
-	<form class="{classes} flex flex-col" onsubmit={submitHandler} {...{ 'un-cloak': '' }}>
+{#if formStatus === 'wait' || formStatus === ''}
+	<form class="{classes} flex flex-col" onsubmit={submitHandler} un-cloak>
 		{#each parseSchemaString(formSchemaString) as { type, name, placeholder, value, options, values }}
 			{#if ['range', 'email', 'number', 'tel', 'text', 'url', 'file', 'date', 'time', 'datetime-local', 'month', 'week', 'hidden'].includes(type)}
 				<input
@@ -263,10 +212,11 @@
 					required={options?.required ?? true}
 					maxlength={options?.maxlength ?? 255}
 					{...options}
+					disabled={areInputsDisabled}
 				/>
 			{/if}
 			{#if ['checkbox', 'radio'].includes(type)}
-				<label class="flex"
+				<label class="flex items-center"
 					><input
 						{type}
 						{name}
@@ -275,6 +225,7 @@
 						required={options?.required ?? true}
 						maxlength={options?.maxlength ?? 255}
 						{...options}
+						disabled={areInputsDisabled}
 					/>{value}</label
 				>
 			{/if}
@@ -286,11 +237,12 @@
 					required={options?.required ?? true}
 					maxlength={options?.maxlength ?? 255}
 					rows={options?.rows ?? 3}
-					{...options}>{value ?? ''}</textarea
+					{...options}
+					disabled={areInputsDisabled}>{value ?? ''}</textarea
 				>
 			{/if}
 			{#if ['select'].includes(type) && values}
-				<select required={options?.required ?? true} {...options}>
+				<select required={options?.required ?? true} {...options} disabled={areInputsDisabled}>
 					<option value="" disabled selected hidden>{placeholder}</option>
 					{#each values as { value, placeholder }}
 						<option {value}>{placeholder}</option>
@@ -299,15 +251,20 @@
 			{/if}
 			{#if ['button'].includes(type)}
 				<button type="submit" {name} value={`${value}`} {...options}>
-					{placeholder}
+					{#if formStatus === 'wait'}
+						<svg class="h-[1.5em] w-[1.5em] animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+					{/if}
+					{#if formStatus === ''}
+						{placeholder}
+					{/if}
 				</button>
 			{/if}
 		{/each}
 	</form>
 {/if}
-{#if status === 'sent' || status === 'error'}
-	<div class="{classes} flex flex-col">
-		{#each parseSchemaString(status === 'sent' ? sentSchemaString : errorSchemaString) as { name, options, type }}
+{#if formStatus === 'sent' || formStatus === 'error'}
+	<div class="{classes} flex flex-col" un-cloak>
+		{#each parseSchemaString(formStatus === 'sent' ? sentSchemaString : errorSchemaString) as { name, options, type }}
 			{#if type === 'h1'}
 				<h1 {...options}>
 					{name}
