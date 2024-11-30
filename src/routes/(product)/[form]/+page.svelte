@@ -7,11 +7,12 @@
 	import '@unocss/reset/tailwind.css';
 
 	import { onMount } from 'svelte';
-	import { parseSchemaString } from './form';
+	import { parseSchemaString } from '$lib/form';
+	import RenderSchema from '$lib/RenderSchema.svelte';
 
 	// let { data } = $props()
 
-	onMount(()=>{
+	onMount(() => {
 		initUnocssRuntime({
 			defaults: {
 				presets: [presetForms(), presetUno],
@@ -41,7 +42,8 @@
 						if (!matcher.startsWith('inputs:')) return matcher;
 						return {
 							matcher: matcher.slice(7),
-							selector: (s) => `${s} :is(input:not([type="file"]), [type="radio"], select, textarea), ${s} input::file-selector-button`
+							selector: (s) =>
+								`${s} :is(input:not([type="file"]), [type="radio"], select, textarea), ${s} input::file-selector-button`
 						};
 					},
 					(matcher) => {
@@ -131,7 +133,7 @@
 				]
 			}
 		});
-	})
+	});
 
 	let hashClassesList = $state(
 		decodeURIComponent($page.url.hash.replace('#', '') ?? '').split(' ')
@@ -147,28 +149,22 @@
 	let formSchemaString = $derived($page.url.searchParams?.get('form') ?? '');
 	let sentSchemaString = $derived($page.url.searchParams?.get('sent') ?? '');
 	let errorSchemaString = $derived($page.url.searchParams?.get('error') ?? '');
-	let publicGoogleRecaptchaToken = '';
-	let areInputsDisabled = $derived(formStatus === 'wait')
+	let formSchema = $derived(parseSchemaString(formSchemaString));
+	let errorSchema = $derived(parseSchemaString(errorSchemaString));
+	let sentSchema = $derived(parseSchemaString(sentSchemaString));
 
-	function resolvePath(path: string) {
-		// Check if path starts with "http://" or "https://"
-		const isAbsolute = path.startsWith('http://') || path.startsWith('https://');
+	// let captchaSolution = $page.url.searchParams
+	// 	.entries()
+	// 	.map(([type, siteKey]) => ({ type, siteKey }))
+	// 	.reduce((prev: { type: string; siteKey: string } | null, curr) => {
+	// 		if (['recaptcha', 'turnstile'].includes(curr.type)) return curr;
+	// 		return prev;
+	// 	}, null);
+	let captchaSolution = $derived(
+		formSchema.findLast((field) => ['captcha'].includes(field.type))
+	);
 
-		// If absolute, return the path as-is
-		if (isAbsolute) {
-			return path;
-		}
-
-		// Check if `document.referrer` is available
-
-		if (document.referrer) {
-			const url = new URL(path, document.referrer); // `URL` constructor will handle the relative path properly
-			return url.href;
-		} else {
-			console.warn('No referrer available; cannot resolve relative path to absolute.');
-			return path; // fallback to the relative path if no referrer
-		}
-	}
+	let areInputsDisabled = $state(false);
 
 	async function submitHandler(
 		e: SubmitEvent & {
@@ -176,36 +172,37 @@
 		}
 	) {
 		e.preventDefault();
-		
-		if (areInputsDisabled) {
+		areInputsDisabled = true;
+		if (formStatus === 'wait') {
 			//Do nothing...
 		} else {
-			formStatus = 'wait'
-
-			await new Promise((res)=>setTimeout(res, 1000))
-
+			formStatus = 'wait';
+			if (!(e.target instanceof HTMLFormElement)) return;
 			try {
-				let body = new FormData(e.currentTarget)
+				let body = new FormData(e.target);
 				let res = await fetch('', {
 					method: 'POST',
 					body
-				})
+				});
 				if (res.ok) {
-					formStatus = 'sent'
+					formStatus = 'sent';
 				} else {
-					throw new Error()
+					throw new Error(res.statusText);
 				}
-			} catch(e) {
-				formStatus = 'error'
+			} catch (e) {
+				console.error(e);
+				formStatus = 'error';
+			} finally {
+				areInputsDisabled = false;
 			}
 		}
-		
 	}
 </script>
 
 {#if formStatus === 'wait' || formStatus === ''}
-	<form class="{classes} flex flex-col" onsubmit={submitHandler} un-cloak>
-		{#each parseSchemaString(formSchemaString) as { type, name, placeholder, value, options, values }}
+	<form class="{classes} flex flex-col" onsubmit={submitHandler} {...{'un-cloak':''}}>
+		<RenderSchema {formStatus} {areInputsDisabled} schema={formSchema} />
+		<!-- {#each formSchema as { type, name, placeholder, value, options, values }}
 			{#if ['range', 'email', 'number', 'tel', 'text', 'url', 'file', 'date', 'time', 'datetime-local', 'month', 'week', 'hidden'].includes(type)}
 				<input
 					{type}
@@ -255,19 +252,29 @@
 			{#if ['button'].includes(type)}
 				<button type="submit" {name} value={`${value}`} {...options}>
 					{#if formStatus === 'wait'}
-						<svg class="h-[1.5em] w-[1.5em] animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+						<svg
+							class="h-[1.5em] w-[1.5em] animate-spin"
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg
+						>
 					{/if}
 					{#if formStatus === ''}
 						{placeholder}
 					{/if}
 				</button>
 			{/if}
-		{/each}
-	</form>
-{/if}
-{#if formStatus === 'sent' || formStatus === 'error'}
-	<div class="{classes} flex flex-col" un-cloak>
-		{#each parseSchemaString(formStatus === 'sent' ? sentSchemaString : errorSchemaString) as { name, options, type }}
+			{#if ['captcha'].includes(type)}
+				{#if name === 'turnstile'}	
+					<div class="cf-turnstile block" data-theme={options?.['data-theme']??'auto'} data-sitekey={value} data-size={options?.['data-size']??'flexible'}></div>
+				{/if}
+			{/if}
 			{#if type === 'h1'}
 				<h1 {...options}>
 					{name}
@@ -311,24 +318,33 @@
 			{#if type === 'img'}
 				<img src={resolvePath(name)} alt={options?.alt ?? ''} {...options} />
 			{/if}
-		{/each}
+		{/each} -->
+	</form>
+{/if}
+{#if formStatus === 'sent' || formStatus === 'error'}
+	<div class="{classes} flex flex-col" {...{'un-cloak':''}}>
+		<RenderSchema {formStatus} schema={formStatus === 'sent' ? sentSchema : errorSchema} />
 	</div>
 {/if}
 
 <svelte:head>
+	{#each formSchema.filter(field=>field.type==='img') as {name}}
+		<link rel="preload" href={name}>
+	{/each}
 	<style>
 		[un-cloak] {
 			display: none;
 		}
 	</style>
-	{#if publicGoogleRecaptchaToken}
-		<script
-			src="https://www.google.com/recaptcha/api.js?render={publicGoogleRecaptchaToken}"
-		></script>
+	{#if captchaSolution?.name === 'turnstile'}
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+	{/if}
+	<!-- {#if captchaSolution?.type === 'recaptcha'}
+		<script src="https://www.google.com/recaptcha/api.js?render={captchaSolution.siteKey}"></script>
 		<style>
 			.grecaptcha-badge {
 				visibility: hidden !important;
 			}
 		</style>
-	{/if}
+	{/if} -->
 </svelte:head>

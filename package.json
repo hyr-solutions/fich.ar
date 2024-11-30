@@ -13,6 +13,7 @@
 		"lint": "prettier --check ."
 	},
 	"devDependencies": {
+		"@flydotio/dockerfile": "^0.5.9",
 		"@iconify-json/lucide": "^1.2.11",
 		"@iconify-json/tabler": "^1.2.7",
 		"@iconify/tailwind": "^1.1.3",
@@ -22,9 +23,10 @@
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@tailwindcss/forms": "^0.5.9",
+		"@types/deep-equal": "^1.0.4",
 		"@unocss/preset-uno": "^0.64.0",
 		"autoprefixer": "^10.4.20",
-		"highlight.js": "^11.10.0",
+		"pocketbase-typegen": "^1.3.0",
 		"prettier": "^3.3.2",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
@@ -38,7 +40,9 @@
 	"dependencies": {
 		"@unocss/reset": "^0.64.0",
 		"@unocss/runtime": "^0.64.0",
-		"pocketbase": "^0.21.5",
+		"deep-equal": "^2.2.3",
+		"pocketbase": "^0.22.0",
+		"puppeteer-core": "^23.8.0",
 		"zod": "^3.23.8"
 	}
 }
