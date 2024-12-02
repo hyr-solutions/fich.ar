@@ -1,13 +1,12 @@
-import { containsSubmissionData, type ParsedField } from '$lib/form.js'
-import type { FormsResponse, SchemasResponse } from '$lib/pocketbase.js'
-import { sendEmail } from '$lib/server/email/send.js'
-import { EmailTemplate } from '$lib/server/email/template.js'
-import { makeClientPb } from '$lib/server/index.js'
+import { Schema, type ParsedField } from '$lib'
+import { Notification } from '$lib/server'
+import type { FormsResponse, SchemasResponse } from '$lib/pocketbase.types'
+import { makeClientPb } from '$lib/server'
 import { error } from '@sveltejs/kit'
 import { z } from 'zod'
 
 export const actions = {
-	async test_emails({ fetch, request, params }) {
+	async test_emails({ request, params }) {
 		const schema = z.object({
 			pocketbaseToken: z.string(),
 			addresses: z.array(z.string().email())
@@ -36,16 +35,13 @@ export const actions = {
 			expand: 'schema'
 		})
 
-		const email = new EmailTemplate(form.title)
-		if (form.expand?.schema.site?.image) email.banner(form.expand?.schema.site?.image)
-		if (form.expand?.schema.site?.favicon && !form.expand?.schema.site?.favicon.includes('.svg'))
-			email.favicon(form.expand?.schema.site?.favicon)
-		if (form.expand?.schema.json)
-			for (let field of form.expand.schema.json.filter(containsSubmissionData)) {
-				email.row(field.name, 'N/A')
-			}
+		if (!form.expand?.schema.fields) error(400)
 
-		await sendEmail(email, parsed.data.addresses)
+		const success = await Notification.sendMails(
+			form,
+			Object.fromEntries((form.expand.schema.fields ?? []).filter(Schema.isSubmissionData).map(({ name }) => [name, 'N/A']))
+		)
+		if (!success) error(500)
 		return {}
 	}
 }

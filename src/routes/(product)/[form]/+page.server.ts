@@ -1,15 +1,10 @@
 import { error, isHttpError, type Actions } from '@sveltejs/kit'
 import deepEqual from 'deep-equal'
-import { generateDynamicSchema, getCaptcha, parseSchemaString } from '../../../lib/form'
-import Pocketbase, { type RecordModel } from 'pocketbase'
-import { PUBLIC_POCKETBASE_BASE_URL } from '$env/static/public'
-import {
-	ADMIN_POCKETBASE_MAIL,
-	ADMIN_POCKETBASE_PASS,
-	CLOUDFLARE_TURNSTILE_SECRET_KEY
-} from '$env/static/private'
-import type { ParsedField } from './form'
-import { makeAdminPb, checkSiteFormSchema } from '$lib/server'
+// import { generateSchemaValidator as generateSchemaValidator, parseSchemaString } from '../../../lib/validation'
+import { CLOUDFLARE_TURNSTILE_SECRET_KEY } from '$env/static/private'
+import { type FormsResponseWithSchema, type FormsResponseWithSchemaAndUser, type ParsedField, Schema } from '$lib'
+import { makeAdminPb, Notification, Scraping } from '$lib/server'
+import type { FormsResponse, SchemasRecord, SchemasResponse } from '$lib/pocketbase.types'
 
 export const ssr = false
 
@@ -21,7 +16,7 @@ export const actions: Actions = {
 
 		function parseSubmittedForm(schemaString: string) {
 			try {
-				return parseSchemaString(schemaString)
+				return Schema.parse(schemaString)
 			} catch (e) {
 				error(400)
 			}
@@ -40,14 +35,14 @@ export const actions: Actions = {
 		let submissionsCollection = pb.collection('submissions')
 		let schemasCollection = pb.collection('schemas')
 
-		let formRecord = await formsCollection.getOne(params.form, {
+		let formRecord = await formsCollection.getOne<FormsResponseWithSchemaAndUser>(params.form, {
 			fetch,
-			expand: 'schema'
+			expand: 'schema, user'
 		})
 
 		const isDevSubmission = formRecord.is_dev as boolean
 		const isProdSubmission = !formRecord?.is_dev as boolean
-		const formRecordSchema = ((formRecord?.expand?.schema?.json ?? null) as ParsedField[]) || null
+		const formRecordSchema = ((formRecord?.expand?.schema?.fields ?? null) as ParsedField[]) || null
 		const doSchemasMismatch = !deepEqual(formRecordSchema, submittedFormSchema)
 
 		if (doSchemasMismatch && isProdSubmission) {
@@ -56,13 +51,14 @@ export const actions: Actions = {
 					// And should notify to the owner of the form to run some smokechecks.
 					error(500)
 				}
-				let siteResults = await checkSiteFormSchema(formRecord.schema_check_site, formRecord.id)
-				if (!siteResults) return formSiteError()
+				// let siteResults = await checkSiteFormSchema(formRecord.schema_check_site, formRecord.id)
+				let scrapingResults = await Scraping.browse(formRecord.schema_check_site)
+				if (!scrapingResults) return formSiteError()
 
-				const iframeUrl = new URL(siteResults.iframe)
+				const iframeUrl = new URL(scrapingResults.iframe)
 
 				const siteFormStringifiedSchema = iframeUrl.searchParams.get('form')
-				const siteFormSchema = parseSchemaString(siteFormStringifiedSchema ?? '')
+				const siteFormSchema = Schema.parse(siteFormStringifiedSchema ?? '')
 
 				const isSiteFormSchemaInvalid = siteFormSchema.length === 0
 				const doesntHaveRecordId = !iframeUrl.pathname.includes(formRecord.id)
@@ -76,11 +72,14 @@ export const actions: Actions = {
 				let newSchema = await schemasCollection.create({
 					form: formRecord.id,
 					schema_check_site: formRecord.schema_check_site,
-					json: siteFormSchema,
-					site: siteResults
-				})
+					fields: siteFormSchema,
+					banner: scrapingResults.banner,
+					iframe: scrapingResults.iframe,
+					site_title: scrapingResults.title,
+					favicon: scrapingResults.favicon
+				} as SchemasRecord)
 
-				formRecord = (await formsCollection.update(
+				formRecord = await formsCollection.update(
 					formRecord.id,
 					{
 						schema: newSchema.id
@@ -88,7 +87,7 @@ export const actions: Actions = {
 					{
 						expand: 'schema'
 					}
-				)) as RecordModel
+				)
 			} catch (err) {
 				if (isHttpError(err)) {
 					throw err
@@ -101,7 +100,7 @@ export const actions: Actions = {
 
 			let newSchema = await schemasCollection.create({
 				form: formRecord.id,
-				json: submittedFormSchema
+				fields: submittedFormSchema
 			})
 			formRecord = await formsCollection.update(
 				formRecord.id,
@@ -116,7 +115,7 @@ export const actions: Actions = {
 
 		// Use schema to validate request
 
-		let schemaValidator = generateDynamicSchema(formRecord.expand?.schema.json)
+		let schemaValidator = Schema.generateValidator(formRecord.expand?.schema.fields as ParsedField[])
 		let schemaValidation = schemaValidator.safeParse(submittedFormBody)
 		if (schemaValidation.error) error(400)
 		let validatedSubmissionData = schemaValidation.data
@@ -127,7 +126,7 @@ export const actions: Actions = {
 		let remoteip = getClientAddress()
 		if (provider === 'cloudflare' || provider === null) {
 			let body: Record<string, any> = {}
-			body.secret = formRecord.captcha ?? CLOUDFLARE_TURNSTILE_SECRET_KEY
+			body.secret = formRecord.captcha_secret ?? CLOUDFLARE_TURNSTILE_SECRET_KEY
 			if (remoteip) body.remoteip = remoteip
 			body.response = submittedFormBody['cf-turnstile-response']
 			if (!body.response) error(400)
@@ -164,9 +163,12 @@ export const actions: Actions = {
 		newSubmission.set('data', JSON.stringify(escapedFilesSubmissionData))
 
 		files.map((file) => newSubmission.append('files', file))
-		await submissionsCollection.create(newSubmission)
+		const createdSubmission = await submissionsCollection.create(newSubmission)
 
-		// TODO: Trigger E-Mail, Webhooks and n8n Nodes.
-		console.log(validatedSubmissionData)
+		if (formRecord.should_send_mail)
+			await Notification.sendMails(formRecord, validatedSubmissionData, formRecord.expand?.user.email).catch(() => {})
+		if (formRecord.should_call_webhooks) await Notification.callWebhooks(formRecord, validatedSubmissionData).catch(() => {})
+
+		console.info('[INFO] New submission!')
 	}
 }

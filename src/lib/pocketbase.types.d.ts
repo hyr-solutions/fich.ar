@@ -94,31 +94,32 @@ export enum FormsCaptchaProviderOptions {
 	"hcaptcha" = "hcaptcha",
 }
 export type FormsRecord = {
+	addresses?: string
 	captcha_provider?: FormsCaptchaProviderOptions
 	captcha_secret?: string
 	created?: IsoDateString
-	forward_addresses?: string
-	forward_n8n_endpoints?: string
-	forward_webhooks?: string
 	id: string
 	is_dev?: boolean
 	schema?: RecordIdString
 	schema_check_site?: string
+	should_call_webhooks?: boolean
+	should_send_mail?: boolean
 	title?: string
 	updated?: IsoDateString
 	user?: RecordIdString
-	wants_email_forwarding?: boolean
-	wants_n8n_forwarding?: boolean
-	wants_webhook_forwarding?: boolean
+	webhooks?: string
 }
 
-export type SchemasRecord<Tjson = unknown, Tsite = unknown> = {
+export type SchemasRecord<Tfields = unknown> = {
+	banner?: string
 	created?: IsoDateString
+	favicon?: string
+	fields: null | Tfields
 	form: RecordIdString
 	id: string
-	json: null | Tjson
+	iframe?: string
 	schema_check_site?: string
-	site?: null | Tsite
+	site_title?: string
 	updated?: IsoDateString
 }
 
@@ -128,6 +129,7 @@ export type SubmissionsRecord<Tdata = unknown> = {
 	data?: null | Tdata
 	form: RecordIdString
 	id: string
+	is_hidden?: boolean
 	schema: RecordIdString
 	updated?: IsoDateString
 }
@@ -152,7 +154,7 @@ export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemF
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
 export type FormsResponse<Texpand = unknown> = Required<FormsRecord> & BaseSystemFields<Texpand>
-export type SchemasResponse<Tjson = unknown, Tsite = unknown, Texpand = unknown> = Required<SchemasRecord<Tjson, Tsite>> & BaseSystemFields<Texpand>
+export type SchemasResponse<Tfields = unknown, Texpand = unknown> = Required<SchemasRecord<Tfields>> & BaseSystemFields<Texpand>
 export type SubmissionsResponse<Tdata = unknown, Texpand = unknown> = Required<SubmissionsRecord<Tdata>> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 

@@ -1,34 +1,34 @@
 <script lang="ts">
-	import type { ParsedField } from '$lib/form';
+	import type { ParsedField } from '$lib'
 
 	interface Props {
-		renderForm?: boolean;
-		schema: ParsedField[];
-		areInputsDisabled?: boolean;
-		formStatus?: '' | 'wait' | 'sent' | 'error';
+		renderForm?: boolean
+		schema: ParsedField[]
+		areInputsDisabled?: boolean
+		formStatus?: '' | 'wait' | 'sent' | 'error'
 	}
 
-    function resolvePath(path: string) {
+	function resolvePath(path: string) {
 		// Check if path starts with "http://" or "https://"
-		const isAbsolute = path.startsWith('http://') || path.startsWith('https://');
+		const isAbsolute = path.startsWith('http://') || path.startsWith('https://')
 
 		// If absolute, return the path as-is
 		if (isAbsolute) {
-			return path;
+			return path
 		}
 
 		// Check if `document.referrer` is available
 
 		if (document.referrer) {
-			const url = new URL(path, document.referrer); // `URL` constructor will handle the relative path properly
-			return url.href;
+			const url = new URL(path, document.referrer) // `URL` constructor will handle the relative path properly
+			return url.href
 		} else {
-			console.warn('No referrer available; cannot resolve relative path to absolute.');
-			return path; // fallback to the relative path if no referrer
+			console.warn('No referrer available; cannot resolve relative path to absolute.')
+			return path // fallback to the relative path if no referrer
 		}
 	}
-    
-	const { renderForm = true, schema, areInputsDisabled = false, formStatus = '' }: Props = $props();
+
+	const { renderForm = true, schema, areInputsDisabled = false, formStatus = '' }: Props = $props()
 </script>
 
 {#each schema as { type, name, placeholder, value, options, values }}
@@ -42,8 +42,7 @@
 				required={options?.required ?? true}
 				maxlength={options?.maxlength ?? 255}
 				{...options}
-				disabled={areInputsDisabled}
-			/>
+				disabled={areInputsDisabled} />
 		{/if}
 		{#if ['checkbox', 'radio'].includes(type)}
 			<label class="flex items-center"
@@ -55,9 +54,7 @@
 					required={options?.required ?? true}
 					maxlength={options?.maxlength ?? 255}
 					{...options}
-					disabled={areInputsDisabled}
-				/>{value}</label
-			>
+					disabled={areInputsDisabled} />{value}</label>
 		{/if}
 		{#if ['textarea'].includes(type)}
 			<textarea
@@ -68,8 +65,7 @@
 				maxlength={options?.maxlength ?? 255}
 				rows={options?.rows ?? 3}
 				{...options}
-				disabled={areInputsDisabled}>{value ?? ''}</textarea
-			>
+				disabled={areInputsDisabled}>{value ?? ''}</textarea>
 		{/if}
 		{#if ['select'].includes(type) && values}
 			<select required={options?.required ?? true} {...options} disabled={areInputsDisabled}>
@@ -92,8 +88,7 @@
 						stroke="currentColor"
 						stroke-width="2"
 						stroke-linecap="round"
-						stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg
-					>
+						stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
 				{/if}
 				{#if formStatus === ''}
 					{placeholder}
@@ -106,8 +101,8 @@
 					class="cf-turnstile block"
 					data-theme={options?.['data-theme'] ?? 'auto'}
 					data-sitekey={value}
-					data-size={options?.['data-size'] ?? 'flexible'}
-				></div>
+					data-size={options?.['data-size'] ?? 'flexible'}>
+				</div>
 			{/if}
 		{/if}
 	{/if}

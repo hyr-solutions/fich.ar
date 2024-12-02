@@ -10,7 +10,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check ."
+		"lint": "prettier --check .",
+		"typegen": "pocketbase-typegen --db ./pocketbase/pb_data/data.db --out ./src/lib/pocketbase.types.d.ts",
+		"ngrok": "ngrok http --url=capital-generally-clam.ngrok-free.app 5173"
 	},
 	"devDependencies": {
 		"@flydotio/dockerfile": "^0.5.9",

@@ -1,13 +1,27 @@
 <script lang="ts">
-	import type { ParsedField } from '$lib/form.js'
+	import RenderSchema from '$lib/components/RenderSchema.svelte'
+	import Cursor from '$lib/components/Cursor.svelte'
 
-	import { goto } from '$app/navigation'
-	import { pb, sizeToInputContent, user } from '$lib'
-	import Fichar from '$lib/Fichar.svelte'
-	import RenderSchema from '$lib/RenderSchema.svelte'
-	import Cursor from '$lib/Cursor.svelte'
+	import { pb, resizeToInputContent, user } from '$lib'
+	import { goto, invalidateAll } from '$app/navigation'
+	import { onDestroy, onMount } from 'svelte'
+	import Form from '$lib/components/Form.svelte'
+	import type { FormsRecord } from '$lib/pocketbase.types.js'
 
 	let { data } = $props()
+
+	let unsubscribe: () => Promise<void>
+
+	onMount(async () => {
+		unsubscribe = await pb.realtime.subscribe('forms', async ({ action, record }: { action: string; record: FormsRecord }) => {
+			if (action === 'update' && record.schema && data.forms.items.find((i) => i.id === record.id)?.schema !== record.schema) {
+				await invalidateAll()
+			}
+		})
+	})
+	onDestroy(() => {
+		unsubscribe()
+	})
 </script>
 
 <Cursor />
@@ -22,8 +36,7 @@
 						class="inline-block h-10 w-10 object-cover transition-all group-hover:-ml-10"
 						alt={$user.email}
 						src={pb.files.getUrl($user, $user.avatar)} />
-					<div
-						class=" inline-grid h-10 min-w-10 place-content-center bg-black text-white transition-all">
+					<div class=" inline-grid h-10 min-w-10 place-content-center bg-black text-white transition-all">
 						<span class="icon-[lucide--user-cog] text-2xl"></span>
 					</div>
 				</div>
@@ -59,18 +72,18 @@
 			</a>
 		</div>
 	</section>
-	<section
-		class="mx-auto mb-32 grid w-full max-w-5xl grid-cols-3 gap-4 gap-y-10 pt-16 text-white lg:pt-32">
+	<section class="mx-auto mb-32 grid w-full max-w-5xl grid-cols-3 gap-4 gap-y-10 pt-16 text-white lg:pt-32">
 		<button
 			data-cursor-hover
-			class="group relative m-4 flex aspect-square items-end justify-end rounded border-2 border-slate-400 px-4 pb-3 text-slate-400 transition-all hover:border-white hover:bg-white hover:text-black wait:border-white wait:bg-white wait:text-black"
+			class="group relative flex aspect-square items-end justify-end rounded border-2 border-slate-400 px-4 pb-3 text-slate-400 transition-all hover:border-white hover:bg-white hover:text-black wait:border-white wait:bg-white wait:text-black"
 			onclick={async (e) => {
 				const t = e.currentTarget
 				t.disabled = true
 				let newForm = await pb.collection('forms').create({
 					user: pb.authStore.model?.id,
-					is_dev: true
-				})
+					is_dev: true,
+					should_send_mail: true
+				} as FormsRecord)
 
 				await goto(`/dashboard/form/${newForm.id}/submissions`, {
 					invalidateAll: true
@@ -78,9 +91,7 @@
 				t.disabled = false
 			}}>
 			<div class="absolute inset-0 grid place-content-center">
-				<span
-					class="icon-[lucide--plus] text-5xl group-wait:icon-[lucide--loader-circle] group-wait:animate-spin"
-				></span>
+				<span class="icon-[lucide--plus] text-5xl group-wait:icon-[lucide--loader-circle] group-wait:animate-spin"></span>
 			</div>
 			<div class="flex items-center gap-1">
 				<span class="font-medium group-wait:hidden"> Create form </span>
@@ -102,24 +113,35 @@
 							<iframe allowtransparency class="w-full h-full p-4" title="{form.title}" src="/{form.id}/?form={encodeURIComponent(new URL(form.expand.schema.site.iframe).searchParams.get('form')??'')}#{new URL(form.expand.schema.site.iframe).hash??''}"></iframe>
 						</div>
 					</div> -->
-				{#if form.expand?.schema?.json}
-					<div
-						class="no-scrollbar flex aspect-square w-full flex-col overflow-x-hidden overflow-y-scroll rounded bg-slate-950">
-						<div
-							aria-hidden="true"
-							class="relative flex h-fit w-full flex-col gap-2 p-14 font-medium text-slate-300 *:rounded *:!border-none *:px-2 *:py-1 *:text-xs *:placeholder:text-slate-300 [&_:not(div)]:bg-slate-900 [&_button]:ml-auto [&_button]:w-fit [&_button]:px-3 [&_button]:py-2">
-							<div class="absolute inset-0 z-10"></div>
-							<RenderSchema
-								areInputsDisabled={true}
-								schema={form.expand.schema.json as ParsedField[]} />
+				<div
+					inert
+					class="no-scrollbar mb-2 flex aspect-square w-full flex-col overflow-x-hidden overflow-y-scroll rounded bg-slate-950">
+					{#if form.expand?.schema?.iframe && form.expand?.schema?.iframe.trim() !== ''}
+						<!-- <iframe
+							inert
+							title={form.title}
+							class="h-full min-h-full w-full min-w-full brightness-75 transition-all group-hover:brightness-100"
+							allowtransparency
+							loading="lazy"
+							src={form.expand.schema.iframe + ' # inert '}></iframe> -->
+
+						<div inert class="h-full min-h-full w-full min-w-full brightness-75 transition-all group-hover:brightness-100">
+							<Form inert url={new URL(form.expand.schema.iframe)} />
 						</div>
-					</div>
-				{:else}
-					<div
-						class="relative grid aspect-square w-full place-content-center overflow-hidden rounded bg-slate-950">
-						<span class="icon-[lucide--code-xml] text-5xl font-semibold text-white">no code</span>
-					</div>
-				{/if}
+					{:else if form.expand?.schema?.fields}
+						<div
+							inert
+							aria-hidden="true"
+							class="relative flex h-full min-h-full w-full min-w-full flex-col gap-2 p-4 font-[Space_Mono] font-medium text-slate-300 *:rounded *:!border-none *:px-4 *:py-3 *:placeholder:text-slate-300 [&_:not(div)]:bg-slate-900 [&_button]:ml-auto [&_button]:w-fit [&_button]:px-6 [&_button]:py-5">
+							<div class="absolute inset-0 z-10"></div>
+							<RenderSchema areInputsDisabled={true} schema={form.expand.schema?.fields} />
+						</div>
+					{:else}
+						<div class="relative grid aspect-square w-full place-content-center overflow-hidden rounded bg-slate-950" inert>
+							<span class="icon-[lucide--code-xml] text-5xl font-semibold text-white">no code</span>
+						</div>
+					{/if}
+				</div>
 				<!-- <a href="/dashboard/{form.id}" class="hover:underline underline-offset-2 decoration-2 font-medium flex w-fit gap-2 mt-2">Edit form <span class="text-2xl icon-[lucide--arrow-right]"></span></a> -->
 				<input
 					autocapitalize="off"
@@ -141,10 +163,10 @@
 								}, 300)
 							)
 						)
-						sizeToInputContent(t)
+						resizeToInputContent(t)
 					}}
 					onpointerover={(e) => {
-						sizeToInputContent(e.currentTarget)
+						resizeToInputContent(e.currentTarget)
 					}}
 					placeholder={form.id}
 					class="mt-2 max-w-full border-none bg-transparent p-0 text-2xl font-semibold decoration-[3px] underline-offset-4 !ring-0 placeholder-shown:text-slate-500 hover:underline focus:underline"

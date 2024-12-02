@@ -1,14 +1,10 @@
-import { pb } from '$lib'
+import { pb, type FormsResponseWithSchema } from '$lib'
 import { redirect } from '@sveltejs/kit'
-import type { LayoutLoad } from './$types'
-import type { FormsResponse, SchemasResponse } from '$lib/pocketbase'
 
-export const load: LayoutLoad = async ({ fetch, url }) => {
+export const load = async ({ fetch, url }) => {
 	let forms = await pb
 		.collection('forms')
-		.getList<
-			FormsResponse<{ schema: SchemasResponse }>
-		>(Number(url.searchParams.get('page') ?? 1), 100, {
+		.getList<FormsResponseWithSchema>(Number(url.searchParams.get('page') ?? 1), 100, {
 			sort: '-created',
 			expand: 'schema',
 			fetch
