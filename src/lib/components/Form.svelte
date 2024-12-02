@@ -168,8 +168,10 @@
 				let body = new FormData(e.target)
 				let res = await fetch('', {
 					method: 'POST',
+					credentials: 'include',
 					body
 				})
+
 				if (res.ok) {
 					formStatus = 'sent'
 				} else {
