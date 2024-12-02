@@ -1,5 +1,6 @@
 export * from './scraping'
 export * from './notification'
+export * from './captcha'
 
 import { ADMIN_POCKETBASE_TOKEN } from '$env/static/private'
 import { PUBLIC_POCKETBASE_BASE_URL } from '$env/static/public'

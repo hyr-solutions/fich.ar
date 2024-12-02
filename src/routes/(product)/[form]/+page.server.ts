@@ -3,7 +3,7 @@ import deepEqual from 'deep-equal'
 // import { generateSchemaValidator as generateSchemaValidator, parseSchemaString } from '../../../lib/validation'
 import { CLOUDFLARE_TURNSTILE_SECRET_KEY } from '$env/static/private'
 import { type FormsResponseWithSchema, type FormsResponseWithSchemaAndUser, type ParsedField, Schema } from '$lib'
-import { makeAdminPb, Notification, Scraping } from '$lib/server'
+import { Captcha, makeAdminPb, Notification, Scraping } from '$lib/server'
 import type { FormsResponse, SchemasRecord, SchemasResponse } from '$lib/pocketbase.types'
 
 export const ssr = false
@@ -121,29 +121,33 @@ export const actions: Actions = {
 		let validatedSubmissionData = schemaValidation.data
 
 		//Verify Recaptcha
+		const captchaToken = submittedFormBody['cf-turnstile-response']
 		let provider: string | null = formRecord.captcha_provider || null
 		console.log(provider)
-		let remoteip = getClientAddress()
-		if (provider === 'cloudflare' || provider === null) {
-			let body: Record<string, any> = {}
-			body.secret = formRecord.captcha_secret ?? CLOUDFLARE_TURNSTILE_SECRET_KEY
-			if (remoteip) body.remoteip = remoteip
-			body.response = submittedFormBody['cf-turnstile-response']
-			if (!body.response) error(400)
+		const clientAddress = getClientAddress()
+		let passedCaptcha = await Captcha.verify(submittedFormBody, formRecord, clientAddress)
+		if (!passedCaptcha) return error(403, { message: 'You did not pass the captcha Skynet!' })
 
-			let res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-				body: JSON.stringify(body),
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			})
-			let outcome = await res.json()
-			if (!outcome?.success)
-				error(403, {
-					message: 'The outcome was not succesful!'
-				})
-		}
+		// if (provider === 'cloudflare' || provider === null) {
+		// 	let body: Record<string, any> = {}
+		// 	body.secret = formRecord.captcha_secret ?? CLOUDFLARE_TURNSTILE_SECRET_KEY
+		// 	if (remoteip) body.remoteip = remoteip
+		// 	body.response = submittedFormBody['cf-turnstile-response']
+		// 	if (!body.response) error(400)
+
+		// 	let res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+		// 		body: JSON.stringify(body),
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		}
+		// 	})
+		// 	let outcome = await res.json()
+		// 	if (!outcome?.success)
+		// 		error(403, {
+		// 			message: 'The outcome was not succesful!'
+		// 		})
+		// }
 		// TODO: Add hCaptcha and reCaptcha
 
 		let files: File[] = []
