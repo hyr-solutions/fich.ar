@@ -1,7 +1,24 @@
 <script lang="ts">
-	import { Schema } from '$lib'
+	import { invalidateAll } from '$app/navigation'
+	import { pb, Schema } from '$lib'
 	import { formatRelativeTime } from '$lib'
 	import Cursor from '$lib/components/Cursor.svelte'
+	import type { SubmissionsRecord } from '$lib/pocketbase.types.js'
+	import { onDestroy, onMount } from 'svelte'
+
+	let unsubscribe: () => Promise<void>
+
+	onMount(async () => {
+		unsubscribe = await pb.realtime.subscribe(
+			'submissions',
+			async ({ action, record }: { action: string; record: SubmissionsRecord }) => {
+				await invalidateAll()
+			}
+		)
+	})
+	onDestroy(() => {
+		unsubscribe()
+	})
 
 	let { data } = $props()
 	let { submissions, form } = $derived(data)
