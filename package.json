@@ -32,6 +32,7 @@
 		"prettier": "^3.3.2",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
+		"puppeteer-core": "^23.9.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"svelte-highlight": "^7.7.0",
@@ -44,7 +45,6 @@
 		"@unocss/runtime": "^0.64.0",
 		"deep-equal": "^2.2.3",
 		"pocketbase": "^0.22.0",
-		"puppeteer-core": "^23.8.0",
 		"zod": "^3.23.8"
 	}
 }
