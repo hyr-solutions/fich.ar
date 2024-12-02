@@ -36,7 +36,7 @@
 		Here you can select a Captcha provider. You can leave this empty if you want, we provide our own Turnstile instance.
 	</p>
 	<div class="flex items-stretch gap-12">
-		<div class="">
+		<div class="flex flex-col items-stretch">
 			<div class="group mb-4 flex items-center gap-6">
 				<label
 					class="group peer flex h-6 w-16 cursor-pointer rounded-md border-2 border-current p-1 text-slate-400 transition-all hover:text-white has-[:checked]:text-green-400">
@@ -50,8 +50,9 @@
 						class="aspect-square rounded bg-slate-400 transition-all group-hover:bg-white group-has-[:checked]:translate-x-10 group-has-[:checked]:bg-green-400">
 					</div>
 				</label>
-				<h2 class="text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
-					Turnstile <span class="-my-2 ml-2 text-3xl svg-[/brand-cloudflare.svg]"></span>
+				<h2
+					class="flex w-full flex-1 items-center gap-4 text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
+					Turnstile <span class="-my-2 !ml-auto text-3xl svg-[/brand-cloudflare.svg]"></span>
 				</h2>
 			</div>
 			<div class="group mb-4 flex items-center gap-6">
@@ -67,8 +68,9 @@
 						class="aspect-square rounded bg-slate-400 transition-all group-hover:bg-white group-has-[:checked]:translate-x-10 group-has-[:checked]:bg-green-400">
 					</div>
 				</label>
-				<h2 class="text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
-					ReCaptcha <span class="-my-2 ml-2 text-3xl svg-[/brand-recaptcha.svg]"></span>
+				<h2
+					class="flex w-full flex-1 items-center gap-4 text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
+					ReCaptcha <span class="-my-2 !ml-auto text-3xl svg-[/brand-recaptcha.svg]"></span>
 				</h2>
 			</div>
 			<div class="group mb-4 flex items-center gap-6">
@@ -84,8 +86,9 @@
 						class="aspect-square rounded bg-slate-400 transition-all group-hover:bg-white group-has-[:checked]:translate-x-10 group-has-[:checked]:bg-green-400">
 					</div>
 				</label>
-				<h2 class="text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
-					hCaptcha <span class="-my-6 ml-2 text-6xl svg-[/brand-hcaptcha.svg]"></span>
+				<h2
+					class="flex w-full flex-1 items-center gap-4 text-lg font-semibold text-slate-500 transition-all peer-hover:text-white peer-has-[:checked]:text-white">
+					hCaptcha <span class="-my-6 !ml-auto text-6xl svg-[/brand-hcaptcha.svg]"></span>
 				</h2>
 			</div>
 		</div>
@@ -103,8 +106,9 @@
 	</div>
 </form>
 
-<button class="mx-4 flex items-center gap-2 rounded border-2 border-white p-4 py-3 text-lg font-semibold">
-	Export submissions to .CSV File. <span class="icon-square-[lucide--file-spreadsheet] text-3xl"></span>
+<button
+	class="mx-4 flex items-center gap-2 rounded border-2 border-white p-4 py-3 font-semibold transition-all hover:border-green-400 hover:bg-green-400 hover:text-black">
+	Export submissions to .CSV File. <span class="icon-square-[lucide--file-spreadsheet] text-2xl"></span>
 </button>
 
 <!-- WEBHOOKS -->
