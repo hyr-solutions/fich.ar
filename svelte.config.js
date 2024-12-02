@@ -3,9 +3,9 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 
-const isProd = process.env.NODE_ENV !== 'development'
+// const isProd = process.env.NODE_ENV !== 'development'
 
-console.info('[INFO] The config.kit.CSRF.checkOrigin is set to: '+ isProd)
+// console.info('[INFO] The config.kit.CSRF.checkOrigin is set to: '+ isProd)
 
 const config = {
 	// Consult https://svelte.dev/docs/kit/integrations
@@ -18,7 +18,7 @@ const config = {
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 		adapter: adapter(),
 		csrf: {
-			checkOrigin: isProd
+			checkOrigin: false
 		}
 	},
 };

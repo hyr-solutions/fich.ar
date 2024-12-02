@@ -8,10 +8,6 @@ import type { FormsResponse, SchemasRecord, SchemasResponse } from '$lib/pocketb
 
 export const ssr = false
 
-export const config = {
-	csrf: false
-}
-
 export const actions: Actions = {
 	async default({ request, params, fetch, url, getClientAddress }) {
 		let submittedStringifiedFormSchema = url.searchParams.get('form')
