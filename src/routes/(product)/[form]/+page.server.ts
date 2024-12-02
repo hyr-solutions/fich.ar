@@ -91,7 +91,7 @@ export const actions: Actions = {
 						schema: newSchema.id
 					},
 					{
-						expand: 'schema'
+						expand: 'schema, user'
 					}
 				)
 			} catch (err) {
@@ -114,12 +114,9 @@ export const actions: Actions = {
 					schema: newSchema.id
 				},
 				{
-					expand: 'schema'
+					expand: 'schema, user'
 				}
 			)
-			if (formRecord.expand) {
-				formRecord.expand.schema = newSchema as SchemaWithJSON
-			}
 		}
 
 		// Use schema to validate request
