@@ -1,6 +1,6 @@
 import { BROWSERLESS_BASE_URL, BROWSERLESS_TOKEN, ORIGIN } from '$env/static/private'
 
-import puppeteer from 'puppeteer-core'
+import puppeteer from '@cloudflare/puppeteer'
 
 export class Scraping {
 	static async browse(site: string) {
@@ -43,10 +43,7 @@ export class Scraping {
 				}
 			}, expectedIframeURL)
 			.catch((err) => {
-				console.error(
-					'[ERROR] Happened when evaluating code to extract data when scraping the user-provided site url: \n',
-					err
-				)
+				console.error('[ERROR] Happened when evaluating code to extract data when scraping the user-provided site url: \n', err)
 				return null
 			})
 

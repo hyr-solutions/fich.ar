@@ -1,10 +1,9 @@
 export * from './scraping'
 export * from './notification'
 
-import { ADMIN_POCKETBASE_TOKEN, BROWSERLESS_BASE_URL, BROWSERLESS_TOKEN, ORIGIN } from '$env/static/private'
+import { ADMIN_POCKETBASE_TOKEN } from '$env/static/private'
 import { PUBLIC_POCKETBASE_BASE_URL } from '$env/static/public'
 
-import puppeteer from 'puppeteer-core'
 import Pocketbase from 'pocketbase'
 import type { TypedPocketBase } from '$lib/pocketbase.types'
 
