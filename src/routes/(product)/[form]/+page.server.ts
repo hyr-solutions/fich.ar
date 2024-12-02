@@ -2,7 +2,13 @@ import { error, isHttpError, type Actions } from '@sveltejs/kit'
 import deepEqual from 'deep-equal'
 // import { generateSchemaValidator as generateSchemaValidator, parseSchemaString } from '../../../lib/validation'
 import { CLOUDFLARE_TURNSTILE_SECRET_KEY } from '$env/static/private'
-import { type FormsResponseWithSchema, type FormsResponseWithSchemaAndUser, type ParsedField, Schema } from '$lib'
+import {
+	type FormsResponseWithSchema,
+	type FormsResponseWithSchemaAndUser,
+	type ParsedField,
+	Schema,
+	type SchemaWithJSON
+} from '$lib'
 import { Captcha, makeAdminPb, Notification, Scraping } from '$lib/server'
 import type { FormsResponse, SchemasRecord, SchemasResponse } from '$lib/pocketbase.types'
 
@@ -111,6 +117,9 @@ export const actions: Actions = {
 					expand: 'schema'
 				}
 			)
+			if (formRecord.expand) {
+				formRecord.expand.schema = newSchema as SchemaWithJSON
+			}
 		}
 
 		// Use schema to validate request
