@@ -1,7 +1,8 @@
 import { BROWSERLESS_BASE_URL, BROWSERLESS_TOKEN, ORIGIN } from '$env/static/private'
 
 // import puppeteer from 'puppeteer-core'
-import playwright from 'playwright-core'
+// import playwright from 'playwright-core'
+import puppeteer from '@cloudflare/puppeteer'
 
 export class Scraping {
 	static async browse(site: string) {
@@ -9,12 +10,13 @@ export class Scraping {
 		browserWSEndpoint.protocol = 'ws:'
 		browserWSEndpoint.searchParams.set('token', BROWSERLESS_TOKEN)
 
-		// const browser = await puppeteer.connect({
-		// 	browserWSEndpoint: browserWSEndpoint.toString()
-		// })
-		const browser = await playwright.chromium.connectOverCDP(browserWSEndpoint.toString())
-		const context = await browser.newContext()
-		const page = await context.newPage()
+		const browser = await puppeteer.connect({
+			browserWSEndpoint: browserWSEndpoint.toString()
+		})
+		// const browser = await playwright.chromium.connectOverCDP(browserWSEndpoint.toString())
+		// const context = await browser.newContext()
+		// const page = await context.newPage()
+		const page = await browser.newPage()
 
 		let expectedIframeURL = new URL(ORIGIN)
 		// expectedIframeURL.pathname = formId
@@ -22,7 +24,7 @@ export class Scraping {
 		let siteURL = new URL(site)
 		siteURL.protocol = 'https://'
 
-		await page.goto(siteURL.toString(), { waitUntil: 'networkidle' })
+		await page.goto(siteURL.toString(), { waitUntil: 'networkidle2' })
 		if (import.meta.env.DEV) {
 			console.info('[INFO] Adding ngrok bypass headers.')
 			console.warn("[WARN] You shouldn't be able to read this in production!")
