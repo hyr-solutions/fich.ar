@@ -143,7 +143,10 @@ export const actions: Actions = {
 				}
 			})
 			let outcome = await res.json()
-			if (!outcome?.success) error(403)
+			if (!outcome?.success)
+				error(403, {
+					message: 'The outcome was not succesful!'
+				})
 		}
 		// TODO: Add hCaptcha and reCaptcha
 
