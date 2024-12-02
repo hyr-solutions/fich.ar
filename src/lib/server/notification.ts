@@ -14,7 +14,7 @@ export class Notification {
 			else entries.push([key, value])
 		}
 
-		const addresses = form.addresses.trim() || defaultAdress
+		const addresses = form.addresses?.trim() || defaultAdress
 		if (!addresses) throw new Error('No addreses provided when sending mails with the form_id:' + form.id)
 
 		const body: any = {
@@ -23,8 +23,8 @@ export class Notification {
 				.split('   ')
 				.slice(0, MAX_EMAILS)
 				.map((address) => ({ email_address: { address, name: address.split('@')[0] } })),
-			subject: form.title,
-			htmlbody: new EmailTemplate(entries, form.title, {
+			subject: form.title || form.id,
+			htmlbody: new EmailTemplate(entries, form.title || form.id, {
 				banner: form.expand.schema.banner || null,
 				favicon: form.expand.schema.favicon || null,
 				siteUrl: form.expand.schema.schema_check_site || null
