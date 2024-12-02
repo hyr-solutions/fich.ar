@@ -5,7 +5,6 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const isProd = process.env.NODE_ENV !== 'development'
 
-
 console.info('[INFO] The config.kit.CSRF.checkOrigin is set to: '+ isProd)
 
 const config = {
